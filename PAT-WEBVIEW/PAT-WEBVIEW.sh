@@ -18,18 +18,18 @@ SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/$MODULE
 ### MODULE COMMANDS FUNCTION ###
 module_commands () {
 
-# Install the pat-webview script
-sudo cp ${MODULE_DIR}/bin/pat-webview /opt/arcOS/bin/
-sudo chmod +x /opt/arcOS/bin/pat-webview
+    # Install the pat-webview script
+    sudo cp ${MODULE_DIR}/bin/pat-webview /opt/arcOS/bin/
+    sudo chmod +x /opt/arcOS/bin/pat-webview
 
-# Install the desktop file
-cp ${MODULE_DIR}/pat-webview.desktop $HOME/.local/share/applications/
+    # Install the desktop file
+    cp ${MODULE_DIR}/pat-webview.desktop $HOME/.local/share/applications/
 
-# Remove old ICE webapp desktop file
-rm -f $HOME/.local/share/applications/webapp-WinlinkClient*.desktop
+    # Remove old ICE webapp desktop file
+    rm -f $HOME/.local/share/applications/webapp-WinlinkClient*.desktop
 
-# Update desktop database
-update-desktop-database $HOME/.local/share/applications/ 2>/dev/null
+    # Update desktop database
+    update-desktop-database $HOME/.local/share/applications/ 2>/dev/null
 
 } # END OF MODULE COMMANDS FUNCTION
 
