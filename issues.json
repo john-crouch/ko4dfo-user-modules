@@ -1,0 +1,50 @@
+{
+  "next_id": 7,
+  "issues": [
+    {
+      "id": 2,
+      "title": "PAT module fails",
+      "status": "resolved",
+      "priority": "high",
+      "created": "2025-12-21T23:50:55+00:00",
+      "updated": "2025-12-22T00:02:00+00:00",
+      "notes": ["Fixed: MODULE_DIR was missing 'ko4dfo-user-modules/' in path"]
+    },
+    {
+      "id": 3,
+      "title": "User modules take 3+ minutes to install",
+      "status": "resolved",
+      "priority": "medium",
+      "created": "2025-12-21T23:50:55+00:00",
+      "updated": "2025-12-22T00:02:00+00:00",
+      "notes": ["Fixed: CLAUDE-CODE module now skips npm install if already installed"]
+    },
+    {
+      "id": 4,
+      "title": "Theme not sticking (currently Mint-Y-Grey)",
+      "status": "resolved",
+      "priority": "high",
+      "created": "2025-12-21T23:50:55+00:00",
+      "updated": "2025-12-22T00:02:00+00:00",
+      "notes": ["Fixed: Updated theme.conf with Mint-Y-Dark-Teal, simplified module to use gsettings directly"]
+    },
+    {
+      "id": 5,
+      "title": "Claude Code VSCodium extension disappears after reboot",
+      "status": "resolved",
+      "priority": "high",
+      "created": "2025-12-21T23:50:55+00:00",
+      "updated": "2025-12-22T00:02:00+00:00",
+      "notes": ["Fixed: VSCODIUM module now symlinks ~/.vscode-oss/extensions to persistent storage"]
+    },
+    {
+      "id": 6,
+      "title": "Claude Code acts as if run for first time (color scheme, authenticate)",
+      "status": "resolved",
+      "priority": "high",
+      "created": "2025-12-21T23:50:55+00:00",
+      "updated": "2025-12-22T00:02:00+00:00",
+      "notes": ["Fixed: CLAUDE-CODE module now symlinks ~/.claude (not ~/.config/claude-code) to persistent storage"]
+    }
+  ]
+}
