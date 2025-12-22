@@ -18,6 +18,12 @@ SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/$MODULE
 ### MODULE COMMANDS FUNCTION ###
 module_commands () {
 
+# Ensure libsecret-tools is installed (for keyring/credential storage)
+if ! command -v secret-tool &> /dev/null; then
+    echo "Installing libsecret-tools for keyring support..."
+    sudo apt-get install -y libsecret-tools
+fi
+
 # Create save directory
 mkdir -p ${SAVE_DIR}
 
