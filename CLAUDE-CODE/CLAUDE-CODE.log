@@ -1,0 +1,7 @@
+Claude Code already installed: v2.0.75
+Migrating existing Claude Code config to persistent storage...
+rsync: [generator] symlink "/arcHIVE/QRV/KO4DFO/SAVED/CLAUDE-CODE/debug/latest" -> "/home/user/.claude/debug/01b445b3-abc5-4c1b-89d8-210ce47b905a.txt" failed: Operation not permitted (1)
+rsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]
+Claude Code config (~/.claude) linked to persistent storage
+Claude Code successfully installed
+2.0.75 (Claude Code)

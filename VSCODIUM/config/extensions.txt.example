@@ -1,0 +1,10 @@
+# VSCodium Extensions List
+# Add one extension ID per line
+# Lines starting with # are comments and will be ignored
+
+# Example extensions:
+# ms-python.python
+# dbaeumer.vscode-eslint
+# esbenp.prettier-vscode
+# golang.go
+# rust-lang.rust-analyzer

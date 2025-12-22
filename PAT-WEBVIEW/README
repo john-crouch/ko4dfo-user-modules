@@ -1,0 +1,24 @@
+### PAT-WEBVIEW ###
+
+A lightweight WebKitGTK-based viewer for PAT Winlink's web interface.
+Replaces the Firefox ICE webapp with a clean, native-feeling window.
+
+### FEATURES ###
+
+- Minimal, native GTK window (no browser chrome)
+- Keyboard shortcuts: F5/Ctrl+R (refresh), Ctrl+Q (quit), F11 (fullscreen)
+- External links open in default browser
+- Friendly error page if PAT service is not running
+- Desktop actions for restart and save config
+
+### INSTRUCTIONS ###
+
+1) Move PAT-WEBVIEW directory into USER Module directory.
+
+2) Move 21_PAT-WEBVIEW.sh into USER Module directory.
+   - Up one level from the PAT-WEBVIEW directory
+
+Notes:
+- Runs after 20_PAT.sh (the core PAT module)
+- Replaces the ICE webapp launcher
+- To deactivate, move script back into PAT-WEBVIEW directory

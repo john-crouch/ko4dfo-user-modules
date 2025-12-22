@@ -1,0 +1,32 @@
+### INSTRUCTIONS ###
+
+1) Move the CLAUDE-CODE directory into the USER Module directory.
+
+2) Move the included 15_CLAUDE-CODE.sh script into the USER Module directory.
+	- Up one level from the CLAUDE-CODE directory
+
+3) On first boot after enabling this module:
+	- Open a terminal and run `claude` to start Claude Code
+	- Use the `/login` command to authenticate with your Claude account
+	- Your configuration is automatically saved to persistent storage
+
+Notes:
+- This module requires an active internet connection during Station Setup.
+
+- Configuration is automatically persistent - you only need to log in once.
+  Your credentials are stored in /arcHIVE/QRV/$MYCALL/SAVED/CLAUDE-CODE/
+
+- The "Save Claude Code Config" desktop launcher can verify your config is persistent.
+
+- The module will be active on the next reboot or re-run of Station Setup.
+
+- To deactivate the module, place the 15_CLAUDE-CODE.sh script back inside the
+  CLAUDE-CODE directory and reboot.
+
+### USAGE ###
+
+After installation, use Claude Code from any terminal:
+
+	claude "your coding task here"
+
+Note: The command is 'claude', not 'claude-code'.

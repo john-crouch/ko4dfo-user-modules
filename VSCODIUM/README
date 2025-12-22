@@ -1,0 +1,28 @@
+### INSTRUCTIONS ###
+
+1) Move the VSCODIUM directory into the USER Module directory.
+
+2) Move the included 95_VSCODIUM.sh script into the USER Module directory.
+	- Up one level from the VSCODIUM directory
+
+3) To preserve and auto-install your extensions:
+
+   Use .vsix extension files:
+   - Download .vsix extension files from https://open-vsx.org/
+   - Place them in the config/ directory
+   - They will be automatically installed on module run
+
+IMPORTANT NOTES:
+- This version of VSCodium has a broken --install-extension command
+- The module works around this by manually extracting .vsix files
+- Use open-vsx.org to download extension .vsix files
+- Extension IDs in extensions.txt are NOT supported due to the codium bug
+
+Module Features:
+- Preserves VSCodium settings, themes, keybindings, and workspace data
+- Automatically installs extensions from .vsix files
+- User data stored in: /arcHIVE/QRV/<CALLSIGN>/SAVED/VSCODIUM/
+- Extensions stored in: /arcHIVE/QRV/<CALLSIGN>/SAVED/VSCODIUM/extensions/
+
+To deactivate:
+- Place the 95_VSCODIUM.sh script back inside the VSCODIUM directory and reboot

@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('WebKit2', '4.1')
+from gi.repository import Gtk, WebKit2, Gdk, GLib
+import subprocess
+import os
+
+SHARED_CSS = """
+/* Remove focus outlines */
+*:focus, *:active, .form-control:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}
+/* Footer/Console */
+.footer {
+    margin-top: 5px !important;
+    padding: 10px 0 !important;
+}
+.footer > .container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+#console {
+    width: 100% !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    margin-top: -5px !important;
+}
+/* Composer */
+#composer .input-group-addon {
+    min-width: 65px !important;
+}
+#composer .modal-header .close {
+    position: absolute !important;
+    right: 15px !important;
+    top: 15px !important;
+}
+/* Alias select + button */
+#aliasSelect {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+#aliasActionBtn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    height: 34px !important;
+}
+/* Select Form modal X button */
+#selectForm .modal-header {
+    position: relative !important;
+}
+#selectForm .modal-header .close {
+    position: absolute !important;
+    right: 15px !important;
+    top: 15px !important;
+}
+"""
+
+DARK_CSS = """
+/* Base dark theme */
+body {
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+}
+/* Navbar */
+.navbar, .navbar-default {
+    background-color: #252526 !important;
+    border-color: #3c3c3c !important;
+}
+.navbar-default .navbar-brand,
+.navbar-default .navbar-nav > li > a,
+.navbar-default .navbar-nav > li > a:link,
+.navbar-default .navbar-nav > li > a:visited,
+.navbar-default .navbar-nav > li > a:focus,
+.navbar-default .navbar-nav > li > a:active {
+    background-color: #252526 !important;
+    color: #d4d4d4 !important;
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > .open > a:focus {
+    background-color: #3c3c3c !important;
+    color: #ffffff !important;
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    background-color: #252526 !important;
+    border-color: #3c3c3c !important;
+}
+.dropdown-menu > li > a,
+.dropdown-menu > li > a:link,
+.dropdown-menu > li > a:visited,
+.dropdown-menu > li > a:active,
+.dropdown-menu > li > a:focus {
+    background-color: #252526 !important;
+    color: #d4d4d4 !important;
+}
+.dropdown-menu > li > a:hover {
+    background-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+.dropdown-menu > .active > a,
+.dropdown-menu > .active > a:hover,
+.dropdown-menu > .active > a:focus {
+    background-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+
+/* Select elements - fix white on select */
+select, select option, select optgroup {
+    background-color: #2d2d2d !important;
+    color: #d4d4d4 !important;
+}
+select:focus, select:active {
+    background-color: #2d2d2d !important;
+    color: #d4d4d4 !important;
+}
+option {
+    background-color: #2d2d2d !important;
+    color: #d4d4d4 !important;
+}
+option:checked {
+    background: #3c3c3c linear-gradient(0deg, #3c3c3c 0%, #3c3c3c 100%) !important;
+    color: #d4d4d4 !important;
+}
+option:hover {
+    background-color: #4d4d4d !important;
+    color: #d4d4d4 !important;
+}
+select option:checked:hover {
+    background: #4d4d4d linear-gradient(0deg, #4d4d4d 0%, #4d4d4d 100%) !important;
+}
+
+
+/* Modals */
+.modal-content {
+    background-color: #1e1e1e !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+.modal-header {
+    background-color: #252526 !important;
+    border-color: #3c3c3c !important;
+}
+.modal-body {
+    background-color: #1e1e1e !important;
+}
+.modal-footer {
+    background-color: #252526 !important;
+    border-color: #3c3c3c !important;
+}
+.close {
+    color: #d4d4d4 !important;
+    opacity: 0.8 !important;
+    text-shadow: none !important;
+}
+.modal-title {
+    color: #d4d4d4 !important;
+}
+/* Select Form (Templates) modal - comprehensive */
+#selectForm,
+#selectForm *,
+#selectForm .modal-dialog,
+#selectForm .modal-content {
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+}
+#selectForm .modal-header,
+#selectForm .modal-header *,
+#selectForm .modal-header .container {
+    background-color: #252526 !important;
+    color: #d4d4d4 !important;
+}
+#selectForm .modal-body,
+#selectForm .modal-body *,
+#selectForm #formFolderRoot,
+#selectForm #formFolderRoot * {
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+}
+#selectForm h5,
+#selectForm .modal-title {
+    color: #d4d4d4 !important;
+}
+#selectForm small {
+    color: #808080 !important;
+}
+#selectForm .list-group-item,
+#selectForm .list-group-item * {
+    background-color: #1e1e1e !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+#selectForm .list-group-item:hover {
+    background-color: #2d2d2d !important;
+}
+#selectForm input,
+#selectForm .search-container input {
+    background-color: #2d2d2d !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+#selectForm .search-clear {
+    background: transparent !important;
+}
+
+/* Panels */
+.panel {
+    background-color: #1e1e1e !important;
+    border-color: #3c3c3c !important;
+}
+.panel-default > .panel-heading {
+    background-color: #2d2d2d !important;
+    color: #d4d4d4 !important;
+}
+.list-group-item {
+    background-color: #1e1e1e !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+/* Tables */
+.table {
+    color: #d4d4d4 !important;
+}
+.table > thead > tr > th {
+    background-color: #2d2d2d !important;
+    border-color: #3c3c3c !important;
+}
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #252526 !important;
+}
+.table-hover > tbody > tr:hover {
+    background-color: #3c3c3c !important;
+}
+/* Forms and inputs */
+.form-control, input, select, textarea {
+    background-color: #2d2d2d !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+.form-control:focus, input:focus {
+    border-color: #4d4d4d !important;
+}
+label {
+    color: #d4d4d4 !important;
+}
+.input-group-addon {
+    background-color: #3c3c3c !important;
+    border-color: #3c3c3c !important;
+    color: #d4d4d4 !important;
+}
+/* Buttons */
+.btn-default {
+    background-color: #3c3c3c !important;
+    border-color: #4d4d4d !important;
+    color: #d4d4d4 !important;
+}
+.btn-default:hover {
+    background-color: #4d4d4d !important;
+}
+.btn-primary {
+    background-color: #007acc !important;
+    border-color: #007acc !important;
+}
+/* Footer/Console */
+.footer {
+    margin-top: 5px !important;
+    background-color: #252526 !important;
+    padding: 10px 0 !important;
+}
+#console {
+    background-color: #1e1e1e !important;
+    color: #4ec9b0 !important;
+    border: 1px solid #3c3c3c !important;
+    border-radius: 4px !important;
+    margin-top: -5px !important;
+}
+/* Links */
+a {
+    color: #3794ff !important;
+}
+/* Container */
+.container {
+    color: #d4d4d4 !important;
+}
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 14px;
+}
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+::-webkit-scrollbar-thumb {
+    background: #4d4d4d;
+    border: 3px solid #1e1e1e;
+    border-radius: 7px;
+}
+"""
+
+LIGHT_CSS = """
+body {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+*:focus, *:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}
+.form-control:focus {
+    border-color: #ccc !important;
+}
+"""
+
+CONFIG_DIR = os.path.expanduser("~/.config/pat-webview")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "theme")
+
+def get_saved_theme():
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                return f.read().strip()
+    except:
+        pass
+    return "dark"
+
+def save_theme(theme):
+    try:
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        with open(CONFIG_FILE, 'w') as f:
+            f.write(theme)
+    except:
+        pass
+
+class PatWebView(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="PAT Winlink")
+        self.set_default_size(1200, 800)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.dark_mode = get_saved_theme() == "dark"
+        try:
+            self.set_icon_from_file("/home/user/.local/share/icons/pat-custom-icon.png")
+        except:
+            pass
+        self.content_manager = WebKit2.UserContentManager()
+        self.apply_theme()
+        self.webview = WebKit2.WebView.new_with_user_content_manager(self.content_manager)
+        self.webview.connect("decide-policy", self.on_decide_policy)
+        self.webview.connect("load-failed", self.on_load_failed)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        vbox.pack_start(self.webview, True, True, 0)
+        self.add(vbox)
+        self.webview.load_uri("http://localhost:8080")
+        self.connect("destroy", Gtk.main_quit)
+        self.connect("key-press-event", self.on_key_press)
+
+    def apply_theme(self):
+        self.content_manager.remove_all_style_sheets()
+        theme_css = DARK_CSS if self.dark_mode else LIGHT_CSS
+        full_css = SHARED_CSS + theme_css
+        stylesheet = WebKit2.UserStyleSheet(
+            full_css,
+            WebKit2.UserContentInjectedFrames.ALL_FRAMES,
+            WebKit2.UserStyleLevel.USER,
+            None, None
+        )
+        self.content_manager.add_style_sheet(stylesheet)
+
+    def toggle_theme(self):
+        self.dark_mode = not self.dark_mode
+        save_theme("dark" if self.dark_mode else "light")
+        self.apply_theme()
+        self.webview.reload()
+
+    def on_decide_policy(self, webview, decision, decision_type):
+        if decision_type == WebKit2.PolicyDecisionType.NAVIGATION_ACTION:
+            nav_action = decision.get_navigation_action()
+            request = nav_action.get_request()
+            uri = request.get_uri()
+            if uri and not uri.startswith("http://localhost"):
+                decision.ignore()
+                subprocess.Popen(["xdg-open", uri])
+                return True
+        return False
+
+    def on_load_failed(self, webview, load_event, failing_uri, error):
+        bg = "#1e1e1e" if self.dark_mode else "#fff"
+        fg = "#d4d4d4" if self.dark_mode else "#333"
+        html = f'<body style="background:{bg};color:{fg};font-family:sans-serif;'
+        html += 'display:flex;justify-content:center;align-items:center;height:100vh">'
+        html += '<div style="text-align:center"><h1>Unable to Connect</h1>'
+        html += '<p>PAT service may not be running.</p>'
+        html += '<code>sudo systemctl restart pat@user.service</code></div></body>'
+        webview.load_html(html, failing_uri)
+        return True
+
+    def on_key_press(self, widget, event):
+        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
+        if event.keyval == Gdk.KEY_F5 or (ctrl and event.keyval == Gdk.KEY_r):
+            self.webview.reload()
+            return True
+        if ctrl and event.keyval == Gdk.KEY_q:
+            Gtk.main_quit()
+            return True
+        if ctrl and event.keyval == Gdk.KEY_d:
+            self.toggle_theme()
+            return True
+        if event.keyval == Gdk.KEY_F11:
+            if self.get_window().get_state() & Gdk.WindowState.FULLSCREEN:
+                self.unfullscreen()
+            else:
+                self.fullscreen()
+            return True
+        return False
+
+def main():
+    GLib.set_prgname("pat-webview")
+    GLib.set_application_name("PAT Winlink")
+    win = PatWebView()
+    win.show_all()
+    Gtk.main()
+
+if __name__ == "__main__":
+    main()

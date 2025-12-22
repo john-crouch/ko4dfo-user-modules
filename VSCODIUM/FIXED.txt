@@ -1,0 +1,25 @@
+VSCODIUM MODULE - FIXED AND WORKING
+
+The module now:
+1. Properly manages the symlink without creating nested directories
+2. Uses rsync instead of mv to prevent directory nesting issues
+3. Installs extensions from .vsix files
+4. Detects already-installed extensions to avoid re-installation
+
+TESTED AND VERIFIED:
+- VSCodium launches successfully ✓
+- Extension installed: github.vscode-github-actions v0.28.2 ✓
+- No nested directory structure ✓
+- Symlink working correctly ✓
+
+USAGE:
+1. Place .vsix files in config/ directory
+2. Run module (or reboot)
+3. Extensions automatically installed
+
+IMPORTANT:
+- The --install-extension command is broken in this VSCodium version
+- Module works around this by manually extracting .vsix files
+- Download extensions from https://open-vsx.org/
+
+Date Fixed: 2025-12-19

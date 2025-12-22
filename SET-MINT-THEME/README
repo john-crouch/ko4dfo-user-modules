@@ -1,0 +1,48 @@
+### SET-MINT-THEME MODULE ###
+
+This module preserves your theme settings and custom cursors across reboots.
+
+WHY NEEDED:
+arcOS runs on a volatile /cow filesystem that resets on reboot.
+Theme settings in ~/.config/dconf/user are lost on reboot.
+Custom cursors in ~/.icons/ are lost on reboot.
+
+WHAT IT DOES:
+On each boot, this module:
+1. Installs the save-theme utility to /opt/arcOS/bin/
+2. Installs custom cursor theme (Bibata-Modern-Amber) system-wide
+3. Sets cursor theme via update-alternatives and ~/.icons/default/
+4. Restores saved theme settings from dconf files (if they exist)
+
+HOW TO USE:
+1. Boot into arcOS - default system theme will load
+2. Use Cinnamon Settings to choose your preferred theme
+3. Run "save-theme" from terminal or application menu
+4. Your theme preferences are saved to /arcHIVE/QRV/$MYCALL/SAVED/SET-MINT-THEME/
+5. On next boot, your saved theme will be automatically restored
+
+SAVE THEME UTILITY:
+The save-theme utility captures your current theme settings:
+- GTK theme (Applications)
+- Icon theme
+- Desktop theme (Cinnamon)
+- Cursor theme
+
+Settings are saved as dconf dumps to persistent storage.
+
+CUSTOM CURSORS:
+Current cursor theme: Bibata-Modern-Amber
+To change cursor theme:
+1. Copy new cursor directory to this module directory
+2. Edit SET-MINT-THEME.sh to reference your cursor directory
+3. Use Cinnamon Settings to select the cursor theme
+4. Run save-theme to persist your choice
+
+SAVED SETTINGS LOCATION:
+/arcHIVE/QRV/$MYCALL/SAVED/SET-MINT-THEME/
+- desktop-interface.dconf (Cinnamon desktop settings)
+- cinnamon-theme.dconf (Cinnamon theme name)
+- gnome-interface.dconf (GTK application settings)
+
+DISABLE MODULE:
+Comment out "SET-MINT-THEME.sh" in ENABLED_MODULES file

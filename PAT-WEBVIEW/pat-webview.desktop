@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Name=PAT Winlink
+Comment=Pat Winlink Client (WebView)
+Exec=/opt/arcOS/bin/pat-webview
+Terminal=false
+Type=Application
+Icon=pat-custom-icon
+StartupWMClass=pat-webview
+StartupNotify=true
+Categories=Network;HamRadio;
+Actions=restart;save
+
+[Desktop Action restart]
+Name=Restart PAT Service
+Exec=/opt/arcOS/bin/restart-pat
+
+[Desktop Action save]
+Name=Save PAT Config
+Exec=/opt/arcOS/bin/save-pat.sh

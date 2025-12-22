@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Save Theme Settings
+GenericName=Save Theme Settings
+Comment=Save current theme settings to persist through reboots
+Exec=/opt/arcOS/bin/save-theme
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=theme;appearance;save;persist;

@@ -36,16 +36,16 @@ ko4dfo-user-modules/
    git clone <repository-url> USER/ko4dfo-user-modules
    ```
 
-2. Create symlinks for HANDOVER scripts:
+2. Copy HANDOVER scripts to the parent directory:
    ```bash
    cd USER/ko4dfo-user-modules
    ./setup-handover.sh
    ```
 
-   This symlinks `HANDOVER/*.sh` files to the top-level directory, ensuring:
-   - Files only exist in one place (in the repo)
-   - Updates to the repo automatically apply
-   - No risk of git seeing them as deleted
+   This copies `HANDOVER/*.sh` files to the top-level USER directory.
+
+   **Note**: `/arcHIVE` uses exFAT which doesn't support symlinks, so files are copied instead.
+   Re-run `setup-handover.sh` after updating HANDOVER scripts to propagate changes.
 
 3. Edit `ENABLED_MODULES` to control module execution order:
    ```bash
@@ -56,7 +56,13 @@ ko4dfo-user-modules/
 
 ## Module Architecture
 
-**Key principle**: Only `HANDOVER` module scripts are symlinked to the top-level directory. All other modules remain organized within their respective subdirectories, keeping the repository structure clean and maintainable.
+**Key principle**: Only `HANDOVER` module scripts are copied to the top-level directory. All other modules remain organized within their respective subdirectories, keeping the repository structure clean and maintainable.
+
+**Current Modules**:
+- `CLAUDE-CODE` - Claude Code CLI installation and config persistence
+- `PAT-WEBVIEW` - PAT Winlink web interface launcher
+- `VSCODIUM` - VSCodium config persistence via symlink
+- `SET-MINT-THEME` - Mint-Y-Dark-Teal theme with Bibata-Modern-Amber cursor
 
 ## Creating New Modules
 
