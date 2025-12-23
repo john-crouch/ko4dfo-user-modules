@@ -138,11 +138,16 @@ install_signal_from_cache () {
         return 1
     fi
 
-    # Install all cached packages
-    sudo dpkg -i "$SAVE_DIR/packages"/*.deb 2>/dev/null || true
+    # Install Signal package (dependencies should already be satisfied on arcOS)
+    # Using --force-depends to skip dependency checks - Signal's deps (GTK, audio libs)
+    # are already present. Avoids apt-get install -f which rebuilds unrelated node packages.
+    sudo dpkg --force-depends -i "$SAVE_DIR/packages"/signal-desktop*.deb 2>/dev/null
 
-    # Fix any missing dependencies
-    sudo apt-get install -f -y -qq 2>/dev/null
+    # Only fix deps if Signal binary is missing (real dependency failure)
+    if ! command -v signal-desktop &>/dev/null; then
+        echo "Signal binary not found, fixing dependencies..."
+        sudo apt-get install -f -y -qq 2>/dev/null
+    fi
 
     echo "=== Signal installation complete ==="
 }

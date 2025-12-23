@@ -17,8 +17,8 @@ source $HOME/.station-info
 # PATHS
 ARCOS_DATA=/arcHIVE
 SAVED_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED
-NODEJS_TAR=$SAVED_DIR/nodejs.tar.gz
-NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.gz
+NODEJS_TAR=$SAVED_DIR/nodejs.tar.zst
+NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.zst
 MODULE_DIR=$ARCOS_DATA/QRV/$MYCALL/arcos-linux-modules/USER/ko4dfo-user-modules/CLAUDE-CODE
 
 echo "=== NodeJS + Claude Code Setup Script ==="
@@ -71,8 +71,8 @@ mkdir -p $SAVED_DIR
 if [ -f "$NODEJS_TAR" ]; then
     echo "  Already cached, skipping"
 else
-    echo "  Creating tarball (preserves symlinks)..."
-    sudo tar -czf $NODEJS_TAR -C /usr/share nodejs
+    echo "  Creating zstd tarball (faster extraction than gzip)..."
+    sudo tar --zstd -cf $NODEJS_TAR -C /usr/share nodejs
     NODEJS_SIZE=$(du -sh $NODEJS_TAR | cut -f1)
     echo "  Cached $NODEJS_SIZE to $NODEJS_TAR"
 fi
@@ -82,8 +82,8 @@ echo "[4/4] Caching /usr/local/lib/node_modules to persistent storage..."
 if [ -f "$NPM_GLOBAL_TAR" ]; then
     echo "  Already cached, skipping"
 else
-    echo "  Creating tarball..."
-    sudo tar -czf $NPM_GLOBAL_TAR -C /usr/local/lib node_modules
+    echo "  Creating zstd tarball..."
+    sudo tar --zstd -cf $NPM_GLOBAL_TAR -C /usr/local/lib node_modules
     NPM_SIZE=$(du -sh $NPM_GLOBAL_TAR | cut -f1)
     echo "  Cached $NPM_SIZE to $NPM_GLOBAL_TAR"
 fi

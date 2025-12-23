@@ -18,10 +18,10 @@ SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/$MODULE
 ### MODULE COMMANDS FUNCTION ###
 module_commands () {
 
-    # Persistent storage paths (tarballs on exFAT)
+    # Persistent storage paths (zstd tarballs on exFAT - faster extraction than gzip)
     SAVED_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED
-    NODEJS_TAR=$SAVED_DIR/nodejs.tar.gz
-    NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.gz
+    NODEJS_TAR=$SAVED_DIR/nodejs.tar.zst
+    NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.zst
 
     # Check if persistent storage exists; if not, run setup script
     if [ ! -f "$NPM_GLOBAL_TAR" ]; then
@@ -34,7 +34,7 @@ module_commands () {
         if [ -f "$NODEJS_TAR" ]; then
             echo "Extracting nodejs modules from cache..."
             sudo rm -rf /usr/share/nodejs
-            sudo tar -xzf $NODEJS_TAR -C /usr/share
+            sudo tar --zstd -xf $NODEJS_TAR -C /usr/share
         fi
     fi
 
@@ -43,7 +43,7 @@ module_commands () {
         if [ -f "$NPM_GLOBAL_TAR" ]; then
             echo "Extracting global npm modules from cache..."
             sudo mkdir -p /usr/local/lib
-            sudo tar -xzf $NPM_GLOBAL_TAR -C /usr/local/lib
+            sudo tar --zstd -xf $NPM_GLOBAL_TAR -C /usr/local/lib
         fi
     fi
 

@@ -11,6 +11,7 @@ Personal user modules for KO4DFO's arcOS Live Linux station setup. These are mod
 - **Overlay filesystem**: Changes to `/etc`, `/usr` don't survive reboot - modules must recreate them each boot
 - **exFAT on /arcHIVE**: No symlinks ON the filesystem, no Unix permissions, no colons in filenames. Symlinks TO exFAT from Linux filesystem work fine.
 - **dpkg persistence issue**: dpkg database may think packages are installed but files are missing after reboot
+- **No apt-get install**: Never use `apt-get install` or `apt install` in modules that run at boot. It's slow and can trigger installation of hundreds of unrelated packages. Instead, cache `.deb` files in `$SAVE_DIR/packages/` and use `dpkg --force-depends -i` to install them.
 
 ## Commands
 
