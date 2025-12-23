@@ -190,6 +190,9 @@ DESKTOP
     mkdir -p "$HOME/.local/share/applications"
     cp "$SAVE_DIR/signal-launch.desktop" "$HOME/.local/share/applications/"
 
+    # Remove original Signal desktop file (force use of encrypted launcher)
+    sudo rm -f /usr/share/applications/signal-desktop.desktop
+
     echo "Signal module setup complete"
 
 } # END OF MODULE COMMANDS FUNCTION
