@@ -1,12 +1,13 @@
-###############################################
-# To enable a module script, list it below.
-# Script names must match exactly!
-# To disable a module script, comment it out.
-# Blank lines are ignored.
-###############################################
+###################################################
+# To enable a module script, list it below.       #
+# Script names must match exactly!                #
+# To disable a module script, comment it out.     #
+# Blank lines are ignored; blank stares are, too. #
+###################################################
 
 CLAUDE-CODE.sh
 PAT-WEBVIEW.sh
 VSCODIUM.sh
 SET-ARCOS-THEME.sh
 UPDATE-MODULES.sh
+SIGNAL.sh

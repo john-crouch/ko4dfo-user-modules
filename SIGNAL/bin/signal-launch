@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+# signal-launch - Mount encrypted storage, launch Signal, unmount on exit
+#
+# This wrapper ensures Signal's data is only accessible while the app is running.
+#
+
+# Load station info for paths
+source "$HOME/.station-info"
+
+# Paths
+ARCOS_DATA=/arcHIVE
+SAVE_DIR="$ARCOS_DATA/QRV/$MYCALL/SAVED/SIGNAL"
+CONTAINER="$SAVE_DIR/signal.luks"
+CONFIG_DIR="$HOME/.config/Signal"
+MAPPER_NAME="signal-crypt"
+MAPPER_PATH="/dev/mapper/$MAPPER_NAME"
+
+# Check if container exists
+if [ ! -f "$CONTAINER" ]; then
+    notify-send --icon=dialog-error "Signal" "Encrypted container not found. Run SIGNAL module first."
+    exit 1
+fi
+
+# Check if already unlocked and mounted
+if [ -e "$MAPPER_PATH" ]; then
+    MOUNT_POINT=$(findmnt -n -o TARGET "$MAPPER_PATH" 2>/dev/null)
+    if [ -n "$MOUNT_POINT" ]; then
+        echo "Already mounted at $MOUNT_POINT"
+    fi
+else
+    # Set up loop device
+    LOOP=$(sudo losetup --find --show "$CONTAINER" 2>&1)
+    if [ $? -ne 0 ]; then
+        notify-send --icon=dialog-error "Signal" "Failed to create loop device"
+        exit 1
+    fi
+
+    # Prompt for password with zenity
+    PASSWORD=$(zenity --password --title="Unlock Signal Storage" 2>/dev/null)
+    if [ -z "$PASSWORD" ]; then
+        sudo losetup -d "$LOOP" 2>/dev/null
+        exit 1
+    fi
+
+    # Unlock with cryptsetup
+    echo -n "$PASSWORD" | sudo cryptsetup open "$LOOP" "$MAPPER_NAME" -d -
+    if [ $? -ne 0 ]; then
+        sudo losetup -d "$LOOP" 2>/dev/null
+        notify-send --icon=dialog-error "Signal" "Failed to unlock. Wrong password?"
+        exit 1
+    fi
+
+    # Mount the unlocked device
+    MOUNT_POINT="/mnt/$MAPPER_NAME"
+    sudo mkdir -p "$MOUNT_POINT"
+    sudo mount "$MAPPER_PATH" "$MOUNT_POINT"
+    if [ $? -ne 0 ]; then
+        sudo cryptsetup close "$MAPPER_NAME" 2>/dev/null
+        sudo losetup -d "$LOOP" 2>/dev/null
+        notify-send --icon=dialog-error "Signal" "Failed to mount filesystem"
+        exit 1
+    fi
+
+    # Make mount point accessible to user
+    sudo chown "$USER:$USER" "$MOUNT_POINT"
+fi
+
+# Get mount point if we didn't set it above
+if [ -z "$MOUNT_POINT" ]; then
+    MOUNT_POINT=$(findmnt -n -o TARGET "$MAPPER_PATH" 2>/dev/null)
+fi
+
+if [ ! -d "$MOUNT_POINT" ]; then
+    notify-send --icon=dialog-error "Signal" "Mount point not accessible"
+    exit 1
+fi
+
+# Ensure config directory exists in encrypted storage
+mkdir -p "$MOUNT_POINT/config"
+
+# Create symlink from Signal's expected config location to encrypted storage
+if [ -d "$CONFIG_DIR" ] && [ ! -L "$CONFIG_DIR" ]; then
+    # Migrate existing data if present
+    if [ "$(ls -A "$CONFIG_DIR" 2>/dev/null)" ]; then
+        cp -a "$CONFIG_DIR"/* "$MOUNT_POINT/config/" 2>/dev/null
+    fi
+    rm -rf "$CONFIG_DIR"
+fi
+
+# Create or update symlink
+ln -sfn "$MOUNT_POINT/config" "$CONFIG_DIR"
+
+# Launch Signal and wait for it to exit
+signal-desktop --no-sandbox "$@"
+EXIT_CODE=$?
+
+# Cleanup: unmount, close, detach
+sleep 1
+
+# Find the loop device
+LOOP=$(sudo losetup -j "$CONTAINER" 2>/dev/null | cut -d: -f1)
+
+sudo umount "$MOUNT_POINT" 2>/dev/null
+sudo cryptsetup close "$MAPPER_NAME" 2>/dev/null
+[ -n "$LOOP" ] && sudo losetup -d "$LOOP" 2>/dev/null
+
+exit $EXIT_CODE
