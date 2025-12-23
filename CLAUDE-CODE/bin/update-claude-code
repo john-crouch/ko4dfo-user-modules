@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# Update Claude Code and refresh the persistent cache
+#
+
+source $HOME/.station-info
+ARCOS_DATA=/arcHIVE
+SAVED_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED
+NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.gz
+
+echo "=== Claude Code Updater ==="
+echo
+
+# Check current version
+if command -v claude &> /dev/null; then
+    CURRENT_VERSION=$(claude --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+    echo "Current version: v${CURRENT_VERSION}"
+else
+    echo "Claude Code not currently installed"
+fi
+
+# Check for updates
+echo
+echo "Checking for updates..."
+LATEST_VERSION=$(npm view @anthropic-ai/claude-code version 2>/dev/null)
+
+if [ -z "$LATEST_VERSION" ]; then
+    echo "Error: Could not check for updates. Check your internet connection."
+    exit 1
+fi
+
+echo "Latest version:  v${LATEST_VERSION}"
+
+if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+    echo
+    echo "Already up to date!"
+
+    # Ask if user wants to force reinstall
+    if command -v yad &> /dev/null; then
+        yad --question --title="Claude Code Update" \
+            --text="Already running the latest version (v${LATEST_VERSION}).\n\nForce reinstall anyway?" \
+            --button="Yes:0" --button="No:1" 2>/dev/null
+        if [ $? -ne 0 ]; then
+            exit 0
+        fi
+    else
+        read -p "Force reinstall anyway? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 0
+        fi
+    fi
+fi
+
+# Perform update
+echo
+echo "Installing Claude Code v${LATEST_VERSION}..."
+sudo npm install -g @anthropic-ai/claude-code@latest
+
+if [ $? -ne 0 ]; then
+    echo "Error: npm install failed"
+    exit 1
+fi
+
+# Verify installation
+NEW_VERSION=$(claude --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+echo
+echo "Installed version: v${NEW_VERSION}"
+
+# Update the cache tarball
+echo
+echo "Updating persistent cache..."
+if [ -d /usr/local/lib/node_modules ]; then
+    sudo tar -czf $NPM_GLOBAL_TAR -C /usr/local/lib node_modules
+    TARBALL_SIZE=$(du -h $NPM_GLOBAL_TAR | cut -f1)
+    echo "Cache updated: $NPM_GLOBAL_TAR (${TARBALL_SIZE})"
+else
+    echo "Warning: /usr/local/lib/node_modules not found, cache not updated"
+fi
+
+echo
+echo "=== Update Complete ==="
+
+# Show notification
+if command -v notify-send &> /dev/null; then
+    if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
+        notify-send --icon=software-update-available "Claude Code Updated" "v${CURRENT_VERSION} → v${NEW_VERSION}\n\nCache refreshed for next reboot."
+    else
+        notify-send --icon=software-update-available "Claude Code Reinstalled" "v${NEW_VERSION}\n\nCache refreshed for next reboot."
+    fi
+fi

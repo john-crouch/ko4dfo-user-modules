@@ -84,6 +84,13 @@ module_commands () {
         echo "Claude Code config (~/.claude) linked to persistent storage"
     fi
 
+    # Install update script
+    sudo cp ${MODULE_DIR}/bin/update-claude-code /opt/arcOS/bin/
+    sudo chmod +x /opt/arcOS/bin/update-claude-code
+
+    # Install desktop file
+    cp ${MODULE_DIR}/update-claude-code.desktop ~/.local/share/applications/
+
 } # END OF MODULE COMMANDS FUNCTION
 
 # Execute the module commands, and notify the user upon failure
