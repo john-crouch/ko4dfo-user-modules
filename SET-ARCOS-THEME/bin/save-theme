@@ -5,15 +5,10 @@ CINNAMON_THEME=$(gsettings get org.cinnamon.theme name | tr -d "'")
 CURSOR_THEME=$(gsettings get org.cinnamon.desktop.interface cursor-theme | tr -d "'")
 source $HOME/.station-info
 ARCOS_DATA=/arcHIVE
-SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/SET-MINT-THEME
-
-# Save dconf settings to persistent storage
-mkdir -p ${SAVE_DIR}
-dconf dump /org/cinnamon/desktop/interface/ > ${SAVE_DIR}/desktop-interface.dconf
-dconf dump /org/cinnamon/theme/ > ${SAVE_DIR}/cinnamon-theme.dconf
-dconf dump /org/gnome/desktop/interface/ > ${SAVE_DIR}/gnome-interface.dconf
+SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/SET-ARCOS-THEME
 
 # Save theme values to config file
+mkdir -p ${SAVE_DIR}
 cat > ${SAVE_DIR}/theme.conf << EOF
 GTK_THEME='${GTK_THEME}'
 ICON_THEME='${ICON_THEME}'

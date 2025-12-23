@@ -18,51 +18,49 @@ SAVE_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED/$MODULE
 ### MODULE COMMANDS FUNCTION ###
 module_commands () {
 
-    # Ensure npm and Node.js are installed
-    if ! command -v npm &> /dev/null; then
-        echo "npm not found, installing nodejs and npm..."
-        sudo apt-get update
-        sudo apt-get install -y nodejs npm
-        sudo npm install -g npm@latest
+    # Persistent storage paths (tarballs on exFAT)
+    SAVED_DIR=$ARCOS_DATA/QRV/$MYCALL/SAVED
+    NODEJS_TAR=$SAVED_DIR/nodejs.tar.gz
+    NPM_GLOBAL_TAR=$SAVED_DIR/node_modules_global.tar.gz
+
+    # Check if persistent storage exists; if not, run setup script
+    if [ ! -f "$NPM_GLOBAL_TAR" ]; then
+        echo "Persistent storage not found, running setup script..."
+        ${MODULE_DIR}/bin/setup-nodejs.sh
     fi
 
-    # Check if Claude Code is already installed
+    # Extract /usr/share/nodejs from tarball if npm doesn't work
+    if ! npm --version &> /dev/null; then
+        if [ -f "$NODEJS_TAR" ]; then
+            echo "Extracting nodejs modules from cache..."
+            sudo rm -rf /usr/share/nodejs
+            sudo tar -xzf $NODEJS_TAR -C /usr/share
+        fi
+    fi
+
+    # Extract /usr/local/lib/node_modules from tarball if Claude not installed
+    if [ ! -d /usr/local/lib/node_modules/@anthropic-ai/claude-code ]; then
+        if [ -f "$NPM_GLOBAL_TAR" ]; then
+            echo "Extracting global npm modules from cache..."
+            sudo mkdir -p /usr/local/lib
+            sudo tar -xzf $NPM_GLOBAL_TAR -C /usr/local/lib
+        fi
+    fi
+
+    # Recreate claude binary symlink if needed
+    if [ -d /usr/local/lib/node_modules/@anthropic-ai/claude-code ] && [ ! -L /usr/local/bin/claude ]; then
+        echo "Recreating claude command symlink..."
+        sudo ln -s ../lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude
+    fi
+
+    # Verify installation
     if command -v claude &> /dev/null; then
         INSTALLED_VERSION=$(claude --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
-        echo "Claude Code already installed: v${INSTALLED_VERSION}"
+        echo "Claude Code ready: v${INSTALLED_VERSION}"
     else
-        # Cache directory for packages
-        CACHE_DIR=${MODULE_DIR}/packages
-        mkdir -p $CACHE_DIR
-
-        # Check if we have a cached package
-        CACHED_PKG=$(ls $CACHE_DIR/anthropic-ai-claude-code-*.tgz 2>/dev/null | head -n1)
-
-        if [ -z "$CACHED_PKG" ]; then
-            # No cached package, download it
-            echo "Downloading Claude Code package to cache..."
-            cd $CACHE_DIR
-            npm pack @anthropic-ai/claude-code
-            CACHED_PKG=$(ls $CACHE_DIR/anthropic-ai-claude-code-*.tgz 2>/dev/null | head -n1)
-        fi
-
-        # Install from cached package
-        if [ -f "$CACHED_PKG" ]; then
-            echo "Installing Claude Code from cached package..."
-            sudo npm install -g "$CACHED_PKG"
-        else
-            echo "Error: Failed to download/cache Claude Code package"
-            exit 1
-        fi
+        echo "Error: Claude Code not available"
+        exit 1
     fi
-
-    # Install save-claude-code.sh script to /opt/arcOS/bin/
-    sudo cp ${MODULE_DIR}/bin/save-claude-code.sh /opt/arcOS/bin/
-    sudo chmod +x /opt/arcOS/bin/save-claude-code.sh
-
-    # Install desktop launcher
-    cp ${MODULE_DIR}/save-claude-code.desktop $HOME/.local/share/applications/
-    chmod +x $HOME/.local/share/applications/save-claude-code.desktop
 
     # Create persistent config directory
     mkdir -p $SAVE_DIR
@@ -84,15 +82,6 @@ module_commands () {
     if [ ! -L $HOME/.claude ]; then
         ln -s ${SAVE_DIR} $HOME/.claude
         echo "Claude Code config (~/.claude) linked to persistent storage"
-    fi
-
-    # Verify installation
-    if command -v claude &> /dev/null; then
-        echo "Claude Code successfully installed"
-        claude --version
-    else
-        echo "Error: Claude Code installation failed"
-        exit 1
     fi
 
 } # END OF MODULE COMMANDS FUNCTION

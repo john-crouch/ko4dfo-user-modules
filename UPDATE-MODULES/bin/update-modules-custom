@@ -1,0 +1,206 @@
+#!/bin/bash
+# Custom update-modules with branch selection and selective updates
+# Only updates files that haven't been locally modified
+
+ARCOS_DATA=/arcHIVE
+source $HOME/.station-info
+REPO_DIR=$ARCOS_DATA/QRV/$MYCALL/arcos-linux-modules
+
+# Determine default branch (same logic as original)
+get_default_branch() {
+    if [ -d "$REPO_DIR/.git" ]; then
+        cd "$REPO_DIR"
+        git branch --show-current
+    else
+        grep "^PRETTY_NAME" /etc/os-release | awk -F "=" '{print $2}' | awk -F "_" '{print $2}' | awk -F '\"' '{print $1}' | tr '[:upper:]' '[:lower:]'
+    fi
+}
+
+# Fetch available branches from remote
+get_remote_branches() {
+    git ls-remote --heads https://github.com/kg4vdk/arcos-linux-modules 2>/dev/null | \
+        awk '{print $2}' | sed 's|refs/heads/||' | sort
+}
+
+# Check for internet
+if ! ping -c 1 8.8.8.8 > /dev/null 2>&1; then
+    notify-send --icon=error "Internet connection required!" "Updating QRV Modules requires an internet connection."
+    exit 1
+fi
+
+# Get branches and default
+DEFAULT_BRANCH=$(get_default_branch)
+BRANCHES=$(get_remote_branches)
+
+# Build branch list for yad (mark default with TRUE)
+BRANCH_LIST=""
+for branch in $BRANCHES; do
+    if [ "$branch" = "$DEFAULT_BRANCH" ]; then
+        BRANCH_LIST="$BRANCH_LIST TRUE $branch"
+    else
+        BRANCH_LIST="$BRANCH_LIST FALSE $branch"
+    fi
+done
+
+# Show branch selection dialog
+SELECTED=$(yad --list \
+    --radiolist \
+    --center \
+    --width=400 \
+    --height=300 \
+    --title="Update QRV Modules (Director's Cut)" \
+    --text="Select branch to update from:" \
+    --column="Select" \
+    --column="Branch" \
+    --button="Cancel:1" \
+    --button="Update:0" \
+    $BRANCH_LIST)
+
+[ $? -ne 0 ] && exit 0
+
+# Extract selected branch
+TARGET_BRANCH=$(echo "$SELECTED" | cut -d'|' -f2)
+[ -z "$TARGET_BRANCH" ] && exit 0
+
+# Progress function
+progress_popup() {
+    yad --progress \
+        --undecorated \
+        --center \
+        --width=500 \
+        --borders=36 \
+        --window-icon="update-manager" \
+        --title="Updating QRV Modules..." \
+        --text="Updating to branch: $TARGET_BRANCH" \
+        --pulsate \
+        --enable-log="Update Log" \
+        --log-expanded \
+        --log-height=250 \
+        --auto-kill \
+        --auto-close \
+        --no-escape \
+        --no-buttons
+}
+
+# Main update function
+do_update() {
+    cd "$REPO_DIR"
+
+    echo "Fetching from origin..."
+    git fetch --all
+
+    # Get locally modified files (modified or untracked in CORE/COMMUNITY)
+    # Note: Deleted files are NOT treated as local mods - they will be restored from remote
+    echo "Checking for local modifications..."
+    MODIFIED=$(git diff --name-only --diff-filter=d HEAD -- CORE COMMUNITY 2>/dev/null)
+    UNTRACKED=$(git ls-files --others --exclude-standard -- CORE COMMUNITY 2>/dev/null)
+
+    # Combine modified and untracked (but not deleted)
+    LOCAL_MODIFIED=$(echo -e "$MODIFIED\n$UNTRACKED" | sort -u | grep -v '^$')
+
+    if [ -n "$LOCAL_MODIFIED" ]; then
+        echo "Locally modified files (will be preserved):"
+        echo "$LOCAL_MODIFIED" | sed 's/^/  /'
+    fi
+
+    # Get files that differ between current HEAD and target branch
+    REMOTE_CHANGES=$(git diff --name-only HEAD "origin/$TARGET_BRANCH" -- CORE COMMUNITY 2>/dev/null | sort -u)
+
+    # Find files to update (remote changes that are NOT locally modified)
+    if [ -n "$LOCAL_MODIFIED" ]; then
+        FILES_TO_UPDATE=$(echo "$REMOTE_CHANGES" | grep -v -F -f <(echo "$LOCAL_MODIFIED") | grep -v '^$')
+    else
+        FILES_TO_UPDATE="$REMOTE_CHANGES"
+    fi
+
+    # Find files that have remote updates but we're skipping (locally modified)
+    SKIPPED_UPDATES=$(echo "$REMOTE_CHANGES" | grep -F -f <(echo "$LOCAL_MODIFIED") 2>/dev/null | grep -v '^$')
+
+    if [ -n "$SKIPPED_UPDATES" ]; then
+        echo ""
+        echo "Skipping updates to locally modified files:"
+        echo "$SKIPPED_UPDATES" | sed 's/^/  /'
+    fi
+
+    # Always switch to target branch
+    echo ""
+    echo "Switching to branch: $TARGET_BRANCH"
+    git checkout "$TARGET_BRANCH" 2>/dev/null || git checkout -b "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+    if [ -z "$FILES_TO_UPDATE" ]; then
+        echo ""
+        echo "No unmodified files to update."
+        echo "NOTIFY=no" > /tmp/update-notify-flag
+    else
+        echo ""
+        echo "Updating unmodified files:"
+        echo "$FILES_TO_UPDATE" | sed 's/^/  /'
+        echo "NOTIFY=yes" > /tmp/update-notify-flag
+
+        # Selectively checkout only unmodified files from remote
+        for file in $FILES_TO_UPDATE; do
+            if [ -n "$file" ]; then
+                # Ensure parent directory exists
+                mkdir -p "$(dirname "$file")"
+                git checkout "origin/$TARGET_BRANCH" -- "$file" 2>/dev/null && echo "  Updated: $file"
+            fi
+        done
+    fi
+
+    # Restore files that were deleted in working tree (not local modifications)
+    echo ""
+    echo "Restoring deleted files..."
+    git diff --name-only --diff-filter=D HEAD -- CORE COMMUNITY 2>/dev/null > /tmp/deleted-files-$$
+    while IFS= read -r file; do
+        if [ -n "$file" ]; then
+            mkdir -p "$(dirname "$file")"
+            git checkout "origin/$TARGET_BRANCH" -- "$file" 2>/dev/null && echo "  Restored: $file"
+        fi
+    done < /tmp/deleted-files-$$
+    rm -f /tmp/deleted-files-$$
+
+    # Handle CORE script placement (move numbered scripts to CORE root)
+    echo ""
+    echo "Organizing CORE modules..."
+    for i in $(find $REPO_DIR/CORE -maxdepth 2 -mindepth 2 -type f -name "[0-9][0-9]_*.sh" 2>/dev/null); do
+        # Only move if not locally modified
+        basename_file=$(basename "$i")
+        relative_path="${i#$REPO_DIR/}"
+        if ! echo "$LOCAL_MODIFIED" | grep -qF "$relative_path"; then
+            mv "$i" "$REPO_DIR/CORE/"
+            echo "  Moved: $basename_file"
+        fi
+    done
+
+    # Only create backup tarball if files were actually updated
+    if [ -n "$FILES_TO_UPDATE" ]; then
+        cd /tmp
+        rm -rf arcos-linux-modules 2>/dev/null
+        echo ""
+        echo "Creating backup tarball..."
+        unbuffer git clone -b "$TARGET_BRANCH" https://github.com/kg4vdk/arcos-linux-modules 2>&1 | grep -v "^remote:" || exit 1
+        tar -czf $ARCOS_DATA/QRV/.arcos-linux-modules.tgz arcos-linux-modules || exit 1
+        rm -rf /tmp/arcos-linux-modules
+    fi
+
+    echo ""
+    echo "Update complete!"
+    echo "Branch: $(cd $REPO_DIR && git branch --show-current)"
+
+    if [ -n "$SKIPPED_UPDATES" ]; then
+        SKIP_COUNT=$(echo "$SKIPPED_UPDATES" | wc -l)
+        echo "Note: $SKIP_COUNT file(s) had remote updates but were preserved due to local modifications."
+    fi
+}
+
+# Run update with progress
+if do_update 2>&1 | while read -r line; do echo "# ${line}"; done | progress_popup; then
+    # Check if we should notify
+    if grep -q "NOTIFY=yes" /tmp/update-notify-flag 2>/dev/null; then
+        notify-send --urgency=critical --icon=update-manager "QRV Modules updated!" "Branch: $TARGET_BRANCH\n\nReboot to complete the update."
+    fi
+    rm -f /tmp/update-notify-flag
+else
+    notify-send --icon=error "Error updating QRV Modules!"
+    rm -f /tmp/update-notify-flag
+fi

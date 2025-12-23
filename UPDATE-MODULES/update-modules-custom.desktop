@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Update QRV Modules (Director's Cut)
+GenericName=Update QRV Modules with branch selection
+Comment=Like the original, but better - now with branch selection and local modification preservation
+Exec=update-modules-custom
+Icon=update-manager
+Terminal=false
+Type=Application
+Categories=System;

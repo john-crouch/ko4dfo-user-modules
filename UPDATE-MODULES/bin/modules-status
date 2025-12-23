@@ -1,0 +1,56 @@
+#!/bin/bash
+# Smart modules-status - only notifies if updates affect unmodified files
+
+ARCOS_DATA=/arcHIVE
+source $HOME/.station-info
+MODULES_DIR=${ARCOS_DATA}/QRV/${MYCALL}/arcos-linux-modules
+
+cd ${MODULES_DIR}
+
+BRANCH=$(git branch --show-current)
+REMOTE_URL=$(git config --get remote.origin.url)
+
+# If github is not reachable, display question mark and exit
+if ! ping -c 3 github.com > /dev/null 2>&1; then
+    echo ""
+    exit 0
+fi
+
+# Get local and remote commit hashes
+LOCAL_HASH=$(cat /tmp/modules.log 2>/dev/null | awk -F " " '{print $1}')
+REMOTE_HASH=$(git ls-remote --heads ${REMOTE_URL}.git | grep "${BRANCH}$" | awk '{print $1}')
+REMOTE_SHORT=$(echo "$REMOTE_HASH" | cut -c 1-7)
+
+# If versions match, we're up to date
+if [ "$REMOTE_SHORT" = "$LOCAL_HASH" ]; then
+    echo ""
+    exit 0
+fi
+
+# Versions differ - check if updates affect unmodified files
+git fetch origin "$BRANCH" --quiet 2>/dev/null
+
+# Get locally modified files (CORE and COMMUNITY only)
+LOCAL_MODS=$(git diff --name-only HEAD -- CORE COMMUNITY 2>/dev/null | sort -u)
+UNTRACKED=$(git ls-files --others --exclude-standard -- CORE COMMUNITY 2>/dev/null | sort -u)
+ALL_LOCAL=$(echo -e "$LOCAL_MODS\n$UNTRACKED" | sort -u | grep -v '^$')
+
+# Get files changed in remote
+REMOTE_CHANGES=$(git diff --name-only HEAD "origin/$BRANCH" -- CORE COMMUNITY 2>/dev/null | sort -u)
+
+# Find remote changes that are NOT in local modifications
+if [ -n "$ALL_LOCAL" ]; then
+    UNMODIFIED_UPDATES=$(echo "$REMOTE_CHANGES" | grep -v -F -f <(echo "$ALL_LOCAL") | grep -v '^$')
+else
+    UNMODIFIED_UPDATES="$REMOTE_CHANGES"
+fi
+
+# Display update icon
+echo ""
+
+# Only notify if there are updates to unmodified files
+if [ -n "$UNMODIFIED_UPDATES" ] && [ ! -f /tmp/.module-update-notified ]; then
+    UPDATE_COUNT=$(echo "$UNMODIFIED_UPDATES" | wc -l)
+    notify-send --urgency=critical --icon="update-manager" "QRV Module Update Available!" "$UPDATE_COUNT file(s) with updates.\n\nView details:\n${REMOTE_URL}/commit/${REMOTE_HASH}\n\nClick to dismiss."
+    touch /tmp/.module-update-notified
+fi

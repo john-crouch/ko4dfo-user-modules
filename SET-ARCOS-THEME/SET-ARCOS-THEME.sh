@@ -1,5 +1,5 @@
 #!/bin/bash
-MODULE="SET-MINT-THEME"
+MODULE="SET-ARCOS-THEME"
 source $HOME/.station-info
 ARCOS_DATA=/arcHIVE
 MODULE_DIR=$ARCOS_DATA/QRV/$MYCALL/arcos-linux-modules/USER/ko4dfo-user-modules/$MODULE
@@ -34,28 +34,32 @@ EOF
     echo "Xcursor.theme: Bibata-Modern-Amber" > $HOME/.Xresources
     xrdb -merge $HOME/.Xresources 2>/dev/null || true
 
-    # Wait for Cinnamon to be fully ready
-    sleep 3
-
-    # Check if we have saved settings to restore
+    # Restore saved theme settings
     mkdir -p ${SAVE_DIR}
     if [ -f ${SAVE_DIR}/theme.conf ]; then
         echo "Restoring theme settings from ${SAVE_DIR}/theme.conf..."
         source ${SAVE_DIR}/theme.conf
 
-        # Apply settings using gsettings (more reliable than dconf load)
-        echo "Applying GTK theme: ${GTK_THEME}"
+        # Update arcos-customization.sh to use saved theme values
+        # This preserves the "apply on every shell" behavior with user's theme
+        if [ -f /etc/profile.d/arcos-customization.sh ]; then
+            sudo sed -i "
+                s|gtk-theme \"Mint-Y-[^\"]*\"|gtk-theme \"${GTK_THEME}\"|g
+                s|theme name \"Mint-Y-[^\"]*\"|theme name \"${CINNAMON_THEME}\"|g
+            " /etc/profile.d/arcos-customization.sh
+            echo "Updated arcos-customization.sh with saved theme: ${GTK_THEME}"
+        fi
+
+        # Also apply immediately
         gsettings set org.cinnamon.desktop.interface gtk-theme "${GTK_THEME}"
         gsettings set org.cinnamon.desktop.interface icon-theme "${ICON_THEME}"
-        gsettings set org.cinnamon.theme name "${CINNAMON_THEME}"
         gsettings set org.cinnamon.desktop.interface cursor-theme "${CURSOR_THEME}"
-
-        # GNOME/GTK application settings (for GTK apps)
+        gsettings set org.cinnamon.theme name "${CINNAMON_THEME}"
         gsettings set org.gnome.desktop.interface gtk-theme "${GTK_THEME}"
         gsettings set org.gnome.desktop.interface icon-theme "${ICON_THEME}"
         gsettings set org.gnome.desktop.interface cursor-theme "${CURSOR_THEME}"
 
-        echo "Theme settings applied successfully"
+        echo "Theme applied: ${GTK_THEME}"
     else
         echo "No theme.conf found - using system defaults"
     fi
