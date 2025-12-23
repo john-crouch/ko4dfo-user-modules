@@ -26,17 +26,24 @@ module_commands () {
     fi
 
     if [ -n "${ENABLED_MODULES}" ]; then
+        TOTAL_START=$(date +%s.%N)
         for i in $(echo "${ENABLED_MODULES}" | grep -v "^#" | grep -v "^[[:blank:]].*$" | grep -v "\.pre\.sh"); do
             MODULE_SCRIPT="$i"
             MODULE_SCRIPT_FULL="$(find "${MY_MODULE_REPO}" -name "$i")"
             if [ -f "${MODULE_SCRIPT_FULL}" ]; then
                 echo -n "Running ${MODULE_SCRIPT}..."
+                START=$(date +%s.%N)
                 bash "${MODULE_SCRIPT_FULL}"
-                echo "DONE!"
+                END=$(date +%s.%N)
+                ELAPSED=$(echo "$END - $START" | bc)
+                printf "DONE! (%.2fs)\n" "$ELAPSED"
             else
                 echo "${MODULE_SCRIPT} not found!"
             fi
         done
+        TOTAL_END=$(date +%s.%N)
+        TOTAL_ELAPSED=$(echo "$TOTAL_END - $TOTAL_START" | bc)
+        printf "\n=== All modules completed in %.2fs ===\n" "$TOTAL_ELAPSED"
     fi
 
 } # END OF MODULE COMMANDS FUNCTION
