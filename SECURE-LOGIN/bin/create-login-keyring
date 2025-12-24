@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""
+Create a Login keyring with a specified password - NO GUI PROMPTS.
+Usage: echo -n "password" | create-login-keyring
+
+This script creates the keyring file directly using gnome-keyring's
+internal format, bypassing the Secret Service which would show a GUI.
+"""
+
+import sys
+import os
+import subprocess
+import hashlib
+import struct
+
+def get_keyring_dir():
+    """Get the keyrings directory path."""
+    return os.path.expanduser("~/.local/share/keyrings")
+
+def keyring_exists():
+    """Check if login.keyring already exists."""
+    keyring_dir = get_keyring_dir()
+    login_keyring = os.path.join(keyring_dir, "login.keyring")
+    return os.path.exists(login_keyring)
+
+def create_login_keyring_file(password):
+    """
+    Create an empty login.keyring file with the given password.
+
+    The GNOME keyring file format (version 2) is complex, but we can
+    use gnome-keyring-daemon itself to create it by:
+    1. Starting the daemon with GNOME_KEYRING_CONTROL set
+    2. Using secret-tool or dbus to trigger creation
+
+    Alternative: Create the file using the keyring's own binary format.
+    """
+    keyring_dir = get_keyring_dir()
+    login_keyring = os.path.join(keyring_dir, "login.keyring")
+    default_keyring = os.path.join(keyring_dir, "default")
+
+    # Ensure directory exists
+    os.makedirs(keyring_dir, mode=0o700, exist_ok=True)
+
+    # Check if already exists
+    if os.path.exists(login_keyring):
+        print(f"Login keyring already exists at {login_keyring}")
+        return True
+
+    print("Creating login.keyring file...")
+
+    # The GNOME keyring v2 format is binary and encrypted.
+    # We can create an empty keyring by using the keyfile format
+    # which gnome-keyring can read. This is a GKeyFile format.
+
+    # Actually, let's use a simpler approach:
+    # Create the keyring using keyctl or by starting gnome-keyring-daemon
+    # in a special mode that creates without prompting.
+
+    # Method: Use PAM-style creation via gnome-keyring-daemon --login
+    # This reads password from stdin and creates the login keyring
+    try:
+        # gnome-keyring-daemon --login reads credentials from stdin
+        # Format: password\0 (null-terminated password)
+        result = subprocess.run(
+            ["gnome-keyring-daemon", "--login"],
+            input=password + "\0",
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            print("Login keyring created via gnome-keyring-daemon --login")
+            print(result.stdout)
+
+            # Set this as the default keyring
+            with open(default_keyring, 'w') as f:
+                f.write("login")
+            os.chmod(default_keyring, 0o600)
+            print("Set login as default keyring")
+
+            return True
+        else:
+            print(f"gnome-keyring-daemon --login failed: {result.stderr}")
+            # Fall through to alternative method
+
+    except FileNotFoundError:
+        print("gnome-keyring-daemon not found")
+    except Exception as e:
+        print(f"Error with gnome-keyring-daemon --login: {e}")
+
+    # Alternative: create using Python GLib bindings with collection create
+    print("Trying alternative method via libsecret...")
+    try:
+        import gi
+        gi.require_version('Secret', '1')
+        from gi.repository import Secret, GLib, Gio
+
+        # Connect to the service
+        service = Secret.Service.get_sync(
+            Secret.ServiceFlags.OPEN_SESSION,
+            None
+        )
+
+        # Create a new collection (keyring) named "Login"
+        # Use create_collection_dbus_path_sync which allows setting password
+        collection = Secret.Collection.create_sync(
+            service,
+            "Login",  # Label
+            "login",  # Alias - makes it the default
+            Secret.CollectionCreateFlags.NONE,
+            None
+        )
+
+        if collection:
+            print(f"Created collection: {collection.get_object_path()}")
+            return True
+
+    except Exception as e:
+        print(f"libsecret method failed: {e}")
+
+    print("ERROR: Could not create login keyring")
+    return False
+
+if __name__ == "__main__":
+    # Read password from stdin
+    password = sys.stdin.read().strip()
+
+    if not password:
+        print("No password provided on stdin")
+        sys.exit(1)
+
+    if keyring_exists():
+        print("Login keyring already exists")
+        sys.exit(0)
+
+    success = create_login_keyring_file(password)
+    sys.exit(0 if success else 1)

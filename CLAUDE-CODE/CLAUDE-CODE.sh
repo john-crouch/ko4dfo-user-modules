@@ -84,6 +84,20 @@ module_commands () {
         echo "Claude Code config (~/.claude) linked to persistent storage"
     fi
 
+    # Persist ~/.claude.json (UI preferences, theme, startup count)
+    # This file lives outside ~/.claude/ and triggers first-run wizard if missing
+    # Can't symlink single files TO exFAT, so we copy to/from persistent storage
+    CLAUDE_JSON_BACKUP=$SAVE_DIR/claude.json.persistent
+    if [ -f "$CLAUDE_JSON_BACKUP" ] && [ ! -f "$HOME/.claude.json" ]; then
+        # Restore from persistent storage on boot
+        cp "$CLAUDE_JSON_BACKUP" "$HOME/.claude.json"
+        echo "Restored ~/.claude.json from persistent storage"
+    elif [ -f "$HOME/.claude.json" ]; then
+        # Save current file to persistent storage (will be restored next boot)
+        cp "$HOME/.claude.json" "$CLAUDE_JSON_BACKUP"
+        echo "Saved ~/.claude.json to persistent storage"
+    fi
+
     # Install update script
     sudo cp ${MODULE_DIR}/bin/update-claude-code /opt/arcOS/bin/
     sudo chmod +x /opt/arcOS/bin/update-claude-code

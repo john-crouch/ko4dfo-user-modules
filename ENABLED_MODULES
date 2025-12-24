@@ -5,6 +5,8 @@
 # Blank lines are ignored; blank stares are, too. #
 ###################################################
 
+SECURE-LOGIN.sh
+GIT.sh
 CLAUDE-CODE.sh
 PAT-WEBVIEW.sh
 VSCODIUM.sh

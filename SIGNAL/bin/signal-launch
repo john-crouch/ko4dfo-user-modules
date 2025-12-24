@@ -92,7 +92,9 @@ fi
 ln -sfn "$MOUNT_POINT/config" "$CONFIG_DIR"
 
 # Launch Signal and wait for it to exit
-signal-desktop --no-sandbox "$@"
+# Use basic password store to keep encryption key in config dir (not gnome-keyring)
+# This ensures the key persists in our encrypted storage, not the volatile system keyring
+signal-desktop --no-sandbox --password-store=basic "$@"
 EXIT_CODE=$?
 
 # Cleanup: unmount, close, detach
