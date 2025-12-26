@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# VarAC Launcher for arcOS
+# Handles config restoration, rigctld startup, and persistence
+# VarAC auto-launches VARA modem via AutoLaunchVARA=1 setting
+# VARA modem requires rigctld for PTT/CAT control
+#
+
+source $HOME/.station-info
+SAVE_DIR=/arcHIVE/QRV/$MYCALL/SAVED/VARAC
+LOCK_FILE="/tmp/varac-launching.lock"
+
+export WINEARCH=win32
+export WINEPREFIX=$HOME/.wine_vara_32
+
+# Prevent multiple launches
+if [ -f "$LOCK_FILE" ]; then
+    LOCK_AGE=$(($(date +%s) - $(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo 0)))
+    if [ "$LOCK_AGE" -lt 60 ]; then
+        notify-send --icon=info "VarAC" "VarAC is already starting. Please wait..."
+        exit 0
+    fi
+    rm -f "$LOCK_FILE"
+fi
+
+touch "$LOCK_FILE"
+trap "rm -f '$LOCK_FILE'" EXIT
+
+CONFIG_FILES="VarAC.ini VarAC_cat_commands.ini VarAC_frequencies.conf VarAC_frequency_schedule.conf VarAC_alert_tags.conf"
+
+restore_configs () {
+    for cfg in $CONFIG_FILES; do
+        [ -f "$SAVE_DIR/$cfg" ] && cp "$SAVE_DIR/$cfg" "$HOME/"
+    done
+    # Ensure AutoLaunchVARA is disabled (Wine compatibility fix)
+    # VarAC kills external VARA instances when AutoLaunchVARA=1
+    # We launch VARA separately to work around Wine TCP socket issues
+    if [ -f "$HOME/VarAC.ini" ]; then
+        sed -i 's/AutoLaunchVARA=1\r\?$/AutoLaunchVARA=0/' "$HOME/VarAC.ini"
+    fi
+}
+
+save_configs () {
+    mkdir -p "$SAVE_DIR"
+    for cfg in $CONFIG_FILES; do
+        [ -f "$HOME/$cfg" ] && cp "$HOME/$cfg" "$SAVE_DIR/"
+    done
+}
+
+if [ ! -f "$WINEPREFIX/drive_c/VarAC/VarAC.exe" ]; then
+    notify-send --icon=error "VarAC" "VarAC.exe not found."
+    exit 1
+fi
+
+# Check for DigiRig and start rigctld (required for VARA PTT/CAT)
+if [ -L /dev/digirig ]; then
+    # Ensure COM1 points to DigiRig
+    rm -f "$WINEPREFIX/dosdevices/com1"
+    ln -s /dev/digirig "$WINEPREFIX/dosdevices/com1"
+
+    # Start rigctld if not already running
+    # Model 2016 = Kenwood TS-570S with full CAT control
+    if ! pgrep -f "rigctld.*digirig" > /dev/null 2>&1; then
+        gnome-terminal --geometry=80x10 --class=rigctld-varac --hide-menubar \
+            --title="RIGCTLD for VarAC (TS-570S)" --zoom=0.75 -- sh -c \
+            'echo "RIGCTLD for VarAC/VARA (Kenwood TS-570S)\nLeave open while using VarAC.\nProvides PTT and CAT control."; rigctld --model=2016 --rig-file=/dev/digirig --ptt-file=/dev/digirig --ptt-type=RTS --serial-speed=9600' &
+        sleep 2
+    fi
+
+    # Restart PAT service (same as VARA HF launcher)
+    sudo systemctl restart pat@user.service
+else
+    notify-send --icon=error "VarAC" "DigiRig device not found. PTT/CAT will not work.\n\nPlease connect DigiRig and restart VarAC."
+fi
+
+restore_configs
+
+# Start VARA HF modem first (Wine compatibility fix)
+# VarAC on Wine requires VARA to be running separately
+if ! pgrep -f "VARA.exe" > /dev/null 2>&1; then
+    wine "$WINEPREFIX/drive_c/VARA/VARA.exe" &
+    sleep 3  # Give VARA time to initialize
+fi
+
+wine "$WINEPREFIX/drive_c/VarAC/VarAC.exe" "$@"
+save_configs
+notify-send --icon=info "VarAC" "Configuration saved."

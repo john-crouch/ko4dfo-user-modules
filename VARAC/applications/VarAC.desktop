@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=VarAC
+Comment=VARA Chat - Real-time keyboard-to-keyboard over VARA
+Exec=/opt/arcOS/bin/varac-launch
+Icon=varac
+Type=Application
+Categories=HamRadio;Network;
+StartupWMClass=varac.exe
+Terminal=false

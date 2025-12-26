@@ -1,0 +1,21 @@
+### INSTRUCTIONS ###
+
+1) Ensure the ko4dfo-user-modules repository is cloned into the USER Module directory.
+
+2) Disable the CORE VARA module by moving its script:
+   mv /arcHIVE/QRV/$MYCALL/arcos-linux-modules/CORE/30_VARA.sh \
+      /arcHIVE/QRV/$MYCALL/arcos-linux-modules/CORE/VARA/
+
+3) Add 20_VARA.sh to the ENABLED_MODULES file:
+   echo "20_VARA.sh" >> ko4dfo-user-modules/ENABLED_MODULES
+
+4) Reboot or re-run Station Setup.
+
+Notes:
+- First boot will take several minutes to install VARA (silent install).
+- Subsequent boots restore from saved tarball (fast).
+- This module uses Wine Mono instead of native .NET Framework.
+- Required for VarAC module to function properly.
+- VARA HF and VARA FM will appear in the Wine category of the Main Menu.
+- In multi-user installations, VARA will remain configured for a previous
+  user if the next user does not also use this module.

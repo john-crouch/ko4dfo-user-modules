@@ -1,0 +1,20 @@
+[Setup]
+Callsign=XXXMYCALLXXX
+Gridsquare=XXXMYLOCXXX
+LinuxCompatibleMode=1
+AutoLaunchVARA=0
+VARAHFPath=C:\VARA\VARA.exe
+VARAFMPath=C:\VARA FM\VARAFM.exe
+VARAHFPort=8300
+VARAFMPort=8300
+[RigControl]
+PTTMode=1
+CATMode=2
+RigModel=167
+COMPort=COM1
+Baudrate=9600
+[Display]
+FontSize=10
+Theme=Dark
+[Network]
+EnablePSKReporter=0

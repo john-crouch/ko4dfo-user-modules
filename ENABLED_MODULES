@@ -6,6 +6,7 @@
 ###################################################
 
 SECURE-LOGIN.sh
+SWAPASS.sh
 GIT.sh
 CLAUDE-CODE.sh
 PAT-WEBVIEW.sh
@@ -13,3 +14,5 @@ VSCODIUM.sh
 SET-ARCOS-THEME.sh
 UPDATE-MODULES.sh
 SIGNAL.sh
+20_VARA.sh
+VARAC.sh

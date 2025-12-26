@@ -1,0 +1,51 @@
+### VARAC MODULE INSTRUCTIONS ###
+
+VarAC is a real-time keyboard-to-keyboard chat application for the VARA
+digital mode. This module provides VarAC integration for arcOS with full
+persistence and DigiRig support.
+
+PREREQUISITES:
+- VARA must be enabled in arcOS station-setup
+- VARA module must have run successfully at least once
+- DigiRig connected and configured
+
+INSTALLATION:
+
+1) Move the VARAC directory into the USER Module directory.
+   /arcHIVE/QRV/<YOURCALL>/arcos-linux-modules/USER/
+
+2) Move the included 40_VARAC.sh script into the USER Module directory.
+   - Up one level from the VARAC directory
+
+3) Reboot or re-run Station Setup.
+
+FIRST RUN:
+- VarAC will be extracted and configured automatically
+- Your callsign will be set from station-info
+- "Linux Compatible Mode" is enabled by default (required for Wine)
+- Find VarAC in the Applications menu under HamRadio
+
+USAGE:
+- Launch VarAC from the Applications menu
+- VARA HF modem will start automatically if not running
+- All settings are saved when you close VarAC
+- Settings persist across reboots
+
+CONFIGURATION:
+- PTT is handled by VARA modem (already configured for DigiRig)
+- VARA connects on localhost:8300
+- Frequency/chat preferences are stored on /arcHIVE
+
+TROUBLESHOOTING:
+- If you see black text boxes, ensure "Linux Compatible Mode" is ON
+  (Settings -> General -> Linux Compatible Mode)
+- If VARA modem doesn't start, launch it manually first
+- Check logs at: VARAC/VARAC.log
+
+Notes:
+- The module will be active on the next reboot or re-run of Station Setup.
+- You may re-number it if necessary for your ordering preferences.
+- To deactivate the module, place the 40_VARAC.sh script back inside
+  the VARAC directory and reboot.
+- In multi-user installations, VARAC will remain configured for a
+  previous user if the next user does not also use this module.
