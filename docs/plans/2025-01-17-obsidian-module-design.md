@@ -7,10 +7,14 @@ arcOS USER module for Obsidian note-taking application. Provides offline install
 ## Design Decisions
 
 - **Vault management**: User responsibility (not module scope)
-- **Config persistence**: Symlink `~/.config/obsidian/` to persistent storage
+- **Config persistence**: Loop-mounted ext4 image (same as CORE/FIREFOX)
 - **.deb acquisition**: Automated download from GitHub releases
 - **Version strategy**: Latest by default, user can pin via `version.txt`
 - **First-run UX**: Interactive Zenity progress dialogs
+
+Note: Symlinks to exFAT don't work for Obsidian because it needs to create
+SingletonLock files which require Unix filesystem features. The ext4 image
+approach provides a real Linux filesystem while persisting on exFAT.
 
 ## Module Structure
 
@@ -31,7 +35,7 @@ Location: `/arcHIVE/QRV/$MYCALL/SAVED/OBSIDIAN/`
 SAVED/OBSIDIAN/
 ├── packages/
 │   └── obsidian_X.X.X_amd64.deb   # Cached installer
-├── config/                         # Symlink target for ~/.config/obsidian/
+├── obsidian-fs                     # 256MB ext4 image (mounted at ~/.config/obsidian/)
 ├── version.txt                     # Optional: user-pinned version
 └── cached_version.txt              # Tracks currently cached .deb version
 ```
@@ -40,21 +44,22 @@ SAVED/OBSIDIAN/
 
 ### On Every Boot
 
-1. Create directories: `$SAVE_DIR/{packages,config}`
+1. Create directories: `$SAVE_DIR/packages`
 2. Determine target version:
    - If `version.txt` exists: use pinned version
    - Else if network available: query GitHub API for latest
    - Else: use cached version
 3. Download if needed (target != cached AND network available)
 4. Install from cache: `sudo dpkg --force-depends -i obsidian_*.deb`
-5. Setup config symlink: `~/.config/obsidian` → `$SAVE_DIR/config/`
+5. Mount config filesystem: `sudo mount $SAVE_DIR/obsidian-fs ~/.config/obsidian/`
 
 ### First-Run (No Cache)
 
 - Zenity progress dialog with stages
 - Download from GitHub releases
 - Cache .deb and record version
-- Install and setup symlinks
+- Create 256MB ext4 image for config
+- Install and mount
 
 ### Offline Boot (Cache Exists)
 
