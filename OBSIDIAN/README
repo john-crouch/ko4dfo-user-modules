@@ -1,0 +1,49 @@
+### INSTRUCTIONS ###
+
+1) Ensure the ko4dfo-user-modules repository is cloned into the USER Module directory.
+
+2) Add OBSIDIAN.sh to the ENABLED_MODULES file:
+   echo "OBSIDIAN.sh" >> ko4dfo-user-modules/ENABLED_MODULES
+
+3) Reboot or re-run Station Setup. With network connectivity, Obsidian will
+   download automatically from GitHub releases.
+
+4) Launch Obsidian from the application menu and select or create your vault.
+   Recommended vault location: /arcHIVE/QRV/$MYCALL/notes/
+   (Vaults are user-managed and NOT handled by this module)
+
+### VERSION PINNING (optional) ###
+
+To pin a specific Obsidian version instead of auto-updating:
+
+   echo "1.5.3" > /arcHIVE/QRV/$MYCALL/SAVED/OBSIDIAN/version.txt
+
+To return to auto-update behavior, delete the version.txt file.
+
+### MANUAL INSTALLATION ###
+
+If first-run fails (no network), you can install manually:
+
+1) Download the .deb from: https://obsidian.md/download
+2) Place it in: /arcHIVE/QRV/$MYCALL/SAVED/OBSIDIAN/packages/
+3) Create version file: echo "X.X.X" > /arcHIVE/QRV/$MYCALL/SAVED/OBSIDIAN/cached_version.txt
+   (Replace X.X.X with the version you downloaded)
+4) Reboot or re-run Station Setup
+
+### WHAT PERSISTS ###
+
+- Obsidian settings, themes, and plugins (~/.config/obsidian/)
+- Cached .deb installer for offline reboots
+- Version preferences
+
+### WHAT DOES NOT PERSIST ###
+
+- Your vaults (notes) - store these on /arcHIVE yourself
+- This module only handles the application, not your data
+
+### NOTES ###
+
+- The module will auto-update Obsidian when a new version is released
+  (unless you have pinned a version)
+- In multi-user installations, Obsidian config will remain configured for
+  a previous user if the next user does not also use this module.
