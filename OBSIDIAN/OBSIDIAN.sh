@@ -128,33 +128,48 @@ install_obsidian_from_cache () {
 }
 
 ### SETUP CONFIG PERSISTENCE ###
+# Use loop-mounted ext4 image (same pattern as CORE/FIREFOX)
+# This gives Obsidian a real Linux filesystem for lock files
+# while the backing image file persists on exFAT
+CONFIG_FS="$SAVE_DIR/obsidian-fs"
+CONFIG_SIZE_MB=256
+
 setup_config_persistence () {
     echo "=== Setting up config persistence ==="
 
     local config_dir="$HOME/.config/obsidian"
-    local save_config="$SAVE_DIR/config"
 
-    # Create persistent config directory
-    mkdir -p "$save_config"
-
-    # Migrate existing config if it's not already a symlink
-    if [ -d "$config_dir" ] && [ ! -L "$config_dir" ]; then
-        echo "Migrating existing Obsidian config to persistent storage..."
-        rsync -a "$config_dir/" "$save_config/"
-        rm -rf "$config_dir"
+    # Unmount if already mounted (from previous run)
+    if grep -q "obsidian" /etc/mtab 2>/dev/null; then
+        sudo umount "$config_dir" 2>/dev/null
     fi
 
-    # Remove broken symlink if exists
-    if [ -L "$config_dir" ] && [ ! -e "$config_dir" ]; then
+    # Remove any broken symlink from previous module version
+    if [ -L "$config_dir" ]; then
+        echo "Removing old symlink..."
         unlink "$config_dir"
     fi
 
-    # Create symlink
-    if [ ! -L "$config_dir" ]; then
-        mkdir -p "$(dirname "$config_dir")"
-        ln -s "$save_config" "$config_dir"
-        echo "Config symlinked: $config_dir -> $save_config"
+    # Remove existing directory (will be replaced by mount)
+    rm -rf "$config_dir"
+    mkdir -p "$config_dir"
+
+    # Create ext4 filesystem image if it doesn't exist
+    if [ ! -f "$CONFIG_FS" ]; then
+        echo "Creating ${CONFIG_SIZE_MB}MB ext4 filesystem for Obsidian config..."
+        dd if=/dev/zero of="$CONFIG_FS" bs=1M count=$CONFIG_SIZE_MB status=progress
+        mkfs.ext4 -q "$CONFIG_FS"
+        # Mount, set ownership, unmount
+        sudo mount "$CONFIG_FS" "$config_dir"
+        sudo chown user:user "$config_dir"
+        sudo chmod 700 "$config_dir"
+        sudo umount "$config_dir"
+        echo "Filesystem created"
     fi
+
+    # Mount the persistent filesystem
+    sudo mount "$CONFIG_FS" "$config_dir"
+    echo "Config mounted: $config_dir (ext4 on $CONFIG_FS)"
 
     echo "=== Config persistence ready ==="
 }
@@ -196,9 +211,8 @@ first_run_setup () {
 ### MODULE COMMANDS FUNCTION ###
 module_commands () {
 
-    # Create save directories
+    # Create save directory
     mkdir -p "$SAVE_DIR/packages"
-    mkdir -p "$SAVE_DIR/config"
 
     # Determine if we need to download
     local target_version=$(get_target_version)

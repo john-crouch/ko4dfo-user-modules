@@ -32,14 +32,22 @@ If first-run fails (no network), you can install manually:
 
 ### WHAT PERSISTS ###
 
-- Obsidian settings, themes, and plugins (~/.config/obsidian/)
+- Obsidian settings, themes, and plugins (automatically via mounted ext4 image)
 - Cached .deb installer for offline reboots
 - Version preferences
 
 ### WHAT DOES NOT PERSIST ###
 
 - Your vaults (notes) - store these on /arcHIVE yourself
-- This module only handles the application, not your data
+- This module only handles the application config, not your data
+
+### HOW CONFIG PERSISTENCE WORKS ###
+
+The module creates a 256MB ext4 filesystem image on /arcHIVE and mounts it
+at ~/.config/obsidian/ on each boot. This gives Obsidian a real Linux
+filesystem (needed for lock files) while persisting across reboots.
+
+This is the same pattern used by CORE/FIREFOX.
 
 ### NOTES ###
 
